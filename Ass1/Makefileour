@@ -1,0 +1,16 @@
+all: main
+
+main: asm.o main.o 
+	gcc -m32 asm.o main.o -o main
+	rm *.o
+
+
+main.o: main.c
+	gcc -g -m32 -c -o main.o main.c 
+
+asm.o: asm.s
+	nasm -f elf32 -o asm.o asm.s
+
+.PHONY: clean
+clean: 
+	rm -f *.o main
