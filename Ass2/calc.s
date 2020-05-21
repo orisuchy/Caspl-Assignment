@@ -39,7 +39,6 @@ section .text
   extern fgets
   extern stdin
 main:
-
     push ebp
     mov ebp, esp
     mov [opSp], dword opStack       ; initialize operand stack pointer
@@ -55,10 +54,11 @@ getInput:
     push dword [stdin]              ; get first argument
     push dword 80
     push dword input
-    call gets                      ; return into eax
+    call fgets                      ; return into eax \ input variable
     add esp, dword 12              ;????????????????? WHAT THE HECK
 
-    mov bl, byte [eax]
+    mov bl, byte [input]           ;
+
     cmp bl,'q'                     ;if input is quit
     jz finish
 
@@ -83,10 +83,6 @@ getInput:
     cmp bl,'*'                    ; if input is multipication
     jz multipiction
 
-    cmp bl , 0x10
-    jz getInput
-
-    jmp createLink
 
 createLink:
     mov ecx , input
@@ -103,7 +99,7 @@ createLink:
 	    call malloc
         mov [nPTR], eax
 	    add esp, 4              ; save size for dword
-        mov [nPTR], byte 0	    ; data = 0
+        mov [nPTR], byte [input]	    ; data = 0
 	    mov [nPTR + nNext], dword 0 ; next = null
 	    popad
 

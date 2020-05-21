@@ -182,58 +182,58 @@ allocate_bytes:
 
 	mov ecx, IN_BUFFER
     find_newline:
-	;; find the end of the input while converting from ascii
-	cmp byte [ecx], NEW_LINE ; reached new-line?
-	je build_nodes
-	;print_log
-	sub [ecx], byte ASCII_FIX
-	inc dword ecx
-	jmp find_newline
+		;; find the end of the input while converting from ascii
+		cmp byte [ecx], NEW_LINE ; reached new-line?
+		je build_nodes
+		;print_log
+		sub [ecx], byte ASCII_FIX
+		inc dword ecx
+		jmp find_newline
 	
     build_nodes:
 	.initialize:
-	mov [PREVIOUS_NODE], dword 0
-	
+		mov [PREVIOUS_NODE], dword 0
+		
 	.build_loop:
-	malloc_node
-	mov eax, [MALLOC_PTR]
-	
-	; put byte in allocated memory
-	mov dl, byte 0
-	sub ecx, dword 2
-	cmp ecx, IN_BUFFER
-	jl .odd
-	mov dl, byte [ecx]
-	shl dl, 4
+		malloc_node
+		mov eax, [MALLOC_PTR]
+		
+		; put byte in allocated memory
+		mov dl, byte 0
+		sub ecx, dword 2
+		cmp ecx, IN_BUFFER
+		jl .odd
+		mov dl, byte [ecx]
+		shl dl, 4
 	.odd:
-	add dl, byte [ecx+1]
-	mov [eax], byte dl
+		add dl, byte [ecx+1]
+		mov [eax], byte dl
 	.b1:
-	; put the current node as next of previous node
-	mov edx, dword [PREVIOUS_NODE]
-	cmp edx, dword 0
-	jne .not_first
-	
-	; push the first node to the virtual stack
+		; put the current node as next of previous node
+		mov edx, dword [PREVIOUS_NODE]
+		cmp edx, dword 0
+		jne .not_first
+		
+		; push the first node to the virtual stack
 	.b2:
-	mov ebx, dword [_SP_]
-	mov [ebx], dword eax
-	add ebx, dword 4 ; size of pointer
-	mov [_SP_], dword ebx ; update _SP_
-	jmp .finish_round
-	
+		mov ebx, dword [_SP_]
+		mov [ebx], dword eax
+		add ebx, dword 4 ; size of pointer
+		mov [_SP_], dword ebx ; update _SP_
+		jmp .finish_round
+		
 	.not_first:
-	mov [edx+1], dword eax
-	
+		mov [edx+1], dword eax
+		
 	.finish_round:
-	; set PREVIOUS_NODE to be the current node for the next round
-	mov [PREVIOUS_NODE], dword eax
-	; check if there more bytes to put in nodes
-	cmp ecx, IN_BUFFER
-	jg .build_loop
-	; finished, jump to start
-	jmp read_input
-	
+		; set PREVIOUS_NODE to be the current node for the next round
+		mov [PREVIOUS_NODE], dword eax
+		; check if there more bytes to put in nodes
+		cmp ecx, IN_BUFFER
+		jg .build_loop
+		; finished, jump to start
+		jmp read_input
+		
 f_add:
 	pushad ; save state
 	push ebp
@@ -554,6 +554,7 @@ f_and:
 	call free_nodes_in_ecx
 	
 	.finish:
+	.cond_input:
 	popad ; retrieve state
 	ret
 	
