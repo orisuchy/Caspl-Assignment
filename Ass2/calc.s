@@ -1,14 +1,29 @@
 
+%macro initialFunc 0
+    pushad
+    push ebp
+    mov ebp, esp
+    inc dword [counter]
+%endmacro
+
+%macro finishingFunc 0
+    mov esp, ebp 
+    pop ebp
+    popad
+    jmp getInput
+%endmacro
 section .bss
-    input: resb 80     ; input - max 80 bytes
-    opStack: resb 5*4  ; operands stack
-    osp: resb 4        ; operands stack pointer
-    counter: resb 4    ; operation counter
+    input: resb 80                  ; input - max 80 bytes
+    opStack: resb 5*4               ; operands stack
+    opSp: resb 4                    ; operands stack pointer
+    counter: resb 4                 ; operation counter
+    nPTR: resb 4
 section .data
-
-
 section .rodata
-	pCalc: db 'calc: ', 0
+    pCalc: db 'calc: ', 0
+    pDebug: db 'DEBUG',10, 0
+    nData: equ 0
+    nNext: equ 1
 
 section .text
   align 16
@@ -19,7 +34,7 @@ section .text
   extern malloc
   extern calloc
   extern free
-  ; extern gets
+  extern gets
   extern getchar
   extern fgets
   extern stdin
@@ -27,79 +42,124 @@ main:
 
     push ebp
     mov ebp, esp
+    mov [opSp], dword opStack       ; initialize operand stack pointer
     pushad
 
 getInput:
 
-    mov [osp], dword opStack ; initialize operand stack pointer
+    push dword pCalc
+    call printf
+    ;add esp, 4                      ;?????????????????WHAT THE HECK
+    popad
 
-	push dword pCalc
-	call printf
-	;add esp, 4 WHAT THE HECK
-	popad
-
-    push dword [stdin] ; get first argument
+    push dword [stdin]              ; get first argument
     push dword 80
     push dword input
-    call fgets         ; return into eax
-	;add esp, dword 12 WHAT THE HECK
+    call gets                      ; return into eax
+    add esp, dword 12              ;????????????????? WHAT THE HECK
 
-    mov bl,'q'
-    cmp bl,input       ; if input is quit
+    mov bl, byte [eax]
+    cmp bl,'q'                     ;if input is quit
     jz finish
 
-    mov bl,'+'
-    cmp bl,input       ; if input is addition
+    cmp bl,'+'                     ;if input is addition
     jz addition
 
-    mov bl,'d'
-    cmp bl,input       ; if input is duplicate
+    cmp bl,'d'                    ;if input is duplicate
+    jz duplicate
 
-    mov bl,'p'
-    cmp bl,input       ; if input is pop and print
+    cmp bl,'p'                    ; if input is pop and print
     jz popAndPrint
 
-    mov bl,'&'
-    cmp bl,input       ; if input bitwise and
+    cmp bl,'&'                    ; if input bitwise and
     jz bitwiseAnd
-
-    mov bl,'|'
-    cmp bl,input       ; if input is or
+    
+    cmp bl,'|'                    ; if input is or
     jz bitwiseOr
 
-    mov bl,'n'
-    cmp bl,input       ; if input number of hexadecimal digits
+    cmp bl,'n'                    ; if input number of hexadecimal digits
     jz numOfDigits
 
-    mov bl,'*'
-    cmp bl,input       ; if input is multipication
+    cmp bl,'*'                    ; if input is multipication
     jz multipiction
 
-	mov esp, [osp]
-	push input
+    cmp bl , 0x10
+    jz getInput
 
-    jmp getNum
+    jmp createLink
+
+createLink:
+    mov ecx , input
+    .newLine:                   ; conver asci input into numbers
+        cmp byte [ecx], 0x10    ;check if we reached new line
+        je .allocate
+        sub [ecx], byte 0x48    ; asci to number : minus 48
+        inc dword ecx           ;get next dword in input
+        jmp .newLine
+    
+    .allocate:
+        pushad
+	    push dword 5            ;FIXME: can be another number, depends on argument
+	    call malloc
+        mov [nPTR], eax
+	    add esp, 4              ; save size for dword
+        mov [nPTR], byte 0	    ; data = 0
+	    mov [nPTR + nNext], dword 0 ; next = null
+	    popad
+
+        ;mov eax, [nPTR]
+		
+        mov dl, byte 0
+        sub ecx, dword 2
+        cmp ecx, input
+        
+        mov dl, byte[ecx]
+        shl dl,4
+
+        
 
 addition:
-	inc dword [counter]
+    initialFunc
+    
+    push dword pDebug
+    call printf
 
+    mov esp, [opSp]
+    pop eax
+    pop ebx
+    add ebx, eax
+    push ebx
+
+    finishingFunc
 duplicate:
-	inc dword [counter]
+    initialFunc
 
+    finishingFunc
 popAndPrint:
-	inc dword [counter]
+    initialFunc
+
+    finishingFunc
 
 bitwiseAnd:
-	inc dword [counter]
+    initialFunc
+
+    finishingFunc
 
 bitwiseOr:
-	inc dword [counter]
+    initialFunc
+
+    finishingFunc
 
 numOfDigits:
-	inc dword [counter]
+    initialFunc
+
+    finishingFunc
+    
 
 multipiction:
-	inc dword [counter]
+    initialFunc
+
+    finishingFunc
 
 emptyStackErr:
 
