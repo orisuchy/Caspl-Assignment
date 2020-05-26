@@ -18,7 +18,9 @@ section .bss
     opSp: resb 4                    ; operands stack pointer
     counter: resb 4                 ; operation counter
     nPTR: resb 4
+    index: resb 4
 section .data
+
 section .rodata
     pCalc: db 'calc: ', 0
     pDebug: db 'DEBUG',10, 0
@@ -48,7 +50,7 @@ getInput:
 
     push dword pCalc
     call printf
-    ;add esp, 4                      ;?????????????????WHAT THE HECK
+    add esp, 4                      ;?????????????????WHAT THE HECK
     popad
 
     push dword [stdin]              ; get first argument
@@ -82,37 +84,48 @@ getInput:
 
     cmp bl,'*'                    ; if input is multipication
     jz multipiction
-
-
-createLink:
-    mov ecx , input
-    .newLine:                   ; conver asci input into numbers
-        cmp byte [ecx], 0x10    ;check if we reached new line
-        je .allocate
-        sub [ecx], byte 0x48    ; asci to number : minus 48
-        inc dword ecx           ;get next dword in input
-        jmp .newLine
     
-    .allocate:
-        pushad
-	    push dword 5            ;FIXME: can be another number, depends on argument
-	    call malloc
+    ; if we reached here, input would be a number
+
+createLinkedList:
+    ; mov ecx, [input]
+    ; mov eax ,0
+    ; mov [index] , eax
+    ; movToEnd:
+    ;     mov ebx, [index]
+    ;     add ebx, [input]
+    ;     cmp byte[ebx], 0x10
+    ;     jz createLink
+    ;     sub byte[input], 0x48
+        
+    ;     inc byte input
+    ;     ;inc [index]
+    ;     jmp movToEnd
+    createLink:
+        push dword 5
+        call malloc
+        add esp, 4
+
         mov [nPTR], eax
-	    add esp, 4              ; save size for dword
-        mov [nPTR], byte [input]	    ; data = 0
-	    mov [nPTR + nNext], dword 0 ; next = null
-	    popad
+        mov cx, input
+        mov [nPTR + nData] , cx
+        mov [nPTR + nNext] , dword 0
+        mov [ opStack + 0] , [nPTR]
+        inc input
+        push dword 5
+        call malloc
+        add esp, 4
 
-        ;mov eax, [nPTR]
-		
-        mov dl, byte 0
-        sub ecx, dword 2
-        cmp ecx, input
-        
-        mov dl, byte[ecx]
-        shl dl,4
+        mov nPTR, eax
+        mov cx, input
+        mov [nPTR + nData] , cx
+        mov [nPTR + nNext] , dword 0
+        mov [ opStack + 1] , [nPTR]
+        mov [opSp] , [opStack]
+        mov [opSp + nNext] , [nPTR]        
 
-        
+   
+    
 
 addition:
     initialFunc

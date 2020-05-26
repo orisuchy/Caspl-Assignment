@@ -18,221 +18,237 @@
     18 00000064 <res 00000004>              opSp: resb 4                    ; operands stack pointer
     19 00000068 <res 00000004>              counter: resb 4                 ; operation counter
     20 0000006C <res 00000004>              nPTR: resb 4
-    21                                  section .data
-    22                                  section .rodata
-    23 00000000 63616C633A2000              pCalc: db 'calc: ', 0
-    24 00000007 44454255470A00              pDebug: db 'DEBUG',10, 0
-    25                                      nData: equ 0
-    26                                      nNext: equ 1
-    27                                  
-    28                                  section .text
-    29                                    align 16
-    30                                    global main
-    31                                    extern printf
-    32                                    extern fprintf
-    33                                    extern fflush
-    34                                    extern malloc
-    35                                    extern calloc
-    36                                    extern free
-    37                                    extern gets
-    38                                    extern getchar
-    39                                    extern fgets
-    40                                    extern stdin
-    41                                  main:
-    42                                  
-    43 00000000 55                          push ebp
-    44 00000001 89E5                        mov ebp, esp
-    45 00000003 C705[64000000]-             mov [opSp], dword opStack       ; initialize operand stack pointer
-    45 00000009 [50000000]         
-    46 0000000D 60                          pushad
-    47                                  
-    48                                  getInput:
-    49                                  
-    50 0000000E 68[00000000]                push dword pCalc
-    51 00000013 E8(00000000)                call printf
-    52                                      ;add esp, 4                      ;?????????????????WHAT THE HECK
-    53 00000018 61                          popad
-    54                                  
-    55 00000019 FF35[00000000]              push dword [stdin]              ; get first argument
-    56 0000001F 6A50                        push dword 80
-    57 00000021 68[00000000]                push dword input
-    58 00000026 E8(00000000)                call fgets                      ; return into eax
-    59 0000002B 83C40C                      add esp, dword 12              ;????????????????? WHAT THE HECK
-    60                                  
-    61 0000002E 8A1D[00000000]              mov bl, byte [input]
-    62 00000034 80FB71                      cmp bl,'q'                     ;if input is quit
-    63 00000037 0F841E010000                jz finish
-    64                                  
-    65 0000003D 80FB2B                      cmp bl,'+'                     ;if input is addition
-    66 00000040 747F                        jz addition
-    67                                  
-    68 00000042 80FB64                      cmp bl,'d'                    ;if input is duplicate
-    69 00000045 0F849E000000                jz duplicate
-    70                                  
-    71 0000004B 80FB70                      cmp bl,'p'                    ; if input is pop and print
-    72 0000004E 0F84A8000000                jz popAndPrint
-    73                                  
-    74 00000054 80FB26                      cmp bl,'&'                    ; if input bitwise and
-    75 00000057 0F84B2000000                jz bitwiseAnd
-    76                                      
-    77 0000005D 80FB7C                      cmp bl,'|'                    ; if input is or
-    78 00000060 0F84BC000000                jz bitwiseOr
-    79                                  
-    80 00000066 80FB6E                      cmp bl,'n'                    ; if input number of hexadecimal digits
-    81 00000069 0F84C6000000                jz numOfDigits
-    82                                  
-    83 0000006F 80FB2A                      cmp bl,'*'                    ; if input is multipication
-    84 00000072 0F84D0000000                jz multipiction
-    85                                  
-    86 00000078 80FB10                      cmp bl , 0x10
-    87 0000007B 7491                        jz getInput
-    88                                  
-    89 0000007D EB00                        jmp createLink
-    90                                  
-    91                                  createLink:
-    92 0000007F B9[00000000]                mov ecx , input
-    93                                      .newLine:                   ; conver asci input into numbers
-    94 00000084 803910                          cmp byte [ecx], 0x10    ;check if we reached new line
-    95 00000087 7406                            je .allocate
-    96 00000089 802948                          sub [ecx], byte 0x48    ; asci to number : minus 48
-    97 0000008C 41                              inc dword ecx           ;get next dword in input
-    98 0000008D EBF5                            jmp .newLine
-    99                                      
-   100                                      .allocate:
-   101 0000008F 60                              pushad
-   102 00000090 6A05                    	    push dword 5            ;FIXME: can be another number, depends on argument
-   103 00000092 E8(00000000)            	    call malloc
-   104 00000097 A3[6C000000]                    mov [nPTR], eax
-   105 0000009C 83C404                  	    add esp, 4              ; save size for dword
-   106 0000009F C605[6C000000]00                mov [nPTR], byte 0	    ; data = 0
-   107 000000A6 C705[6D000000]0000-     	    mov [nPTR + nNext], dword 0 ; next = null
-   107 000000AE 0000               
-   108 000000B0 61                      	    popad
-   109                                  
-   110                                          ;mov eax, [nPTR]
-   111                                  		
-   112 000000B1 B200                            mov dl, byte 0
-   113 000000B3 83E902                          sub ecx, dword 2
-   114 000000B6 81F9[00000000]                  cmp ecx, input
-   115                                          
-   116 000000BC 8A11                            mov dl, byte[ecx]
-   117 000000BE C0E204                          shl dl,4
+    21 00000070 <res 00000004>              index: resb 4
+    22                                  section .data
+    23                                  
+    24                                  section .rodata
+    25 00000000 63616C633A2000              pCalc: db 'calc: ', 0
+    26 00000007 44454255470A00              pDebug: db 'DEBUG',10, 0
+    27                                      nData: equ 0
+    28                                      nNext: equ 1
+    29                                  
+    30                                  section .text
+    31                                    align 16
+    32                                    global main
+    33                                    extern printf
+    34                                    extern fprintf
+    35                                    extern fflush
+    36                                    extern malloc
+    37                                    extern calloc
+    38                                    extern free
+    39                                    extern gets
+    40                                    extern getchar
+    41                                    extern fgets
+    42                                    extern stdin
+    43                                  main:
+    44 00000000 55                          push ebp
+    45 00000001 89E5                        mov ebp, esp
+    46 00000003 C705[64000000]-             mov [opSp], dword opStack       ; initialize operand stack pointer
+    46 00000009 [50000000]         
+    47 0000000D 60                          pushad
+    48                                  
+    49                                  getInput:
+    50                                  
+    51 0000000E 68[00000000]                push dword pCalc
+    52 00000013 E8(00000000)                call printf
+    53 00000018 83C404                      add esp, 4                      ;?????????????????WHAT THE HECK
+    54 0000001B 61                          popad
+    55                                  
+    56 0000001C FF35[00000000]              push dword [stdin]              ; get first argument
+    57 00000022 6A50                        push dword 80
+    58 00000024 68[00000000]                push dword input
+    59 00000029 E8(00000000)                call fgets                      ; return into eax \ input variable
+    60 0000002E 83C40C                      add esp, dword 12              ;????????????????? WHAT THE HECK
+    61                                  
+    62 00000031 8A1D[00000000]              mov bl, byte [input]           ;
+    63                                  
+    64 00000037 80FB71                      cmp bl,'q'                     ;if input is quit
+    65 0000003A 0F8418010000                jz finish
+    66                                  
+    67 00000040 80FB2B                      cmp bl,'+'                     ;if input is addition
+    68 00000043 7479                        jz addition
+    69                                  
+    70 00000045 80FB64                      cmp bl,'d'                    ;if input is duplicate
+    71 00000048 0F8498000000                jz duplicate
+    72                                  
+    73 0000004E 80FB70                      cmp bl,'p'                    ; if input is pop and print
+    74 00000051 0F84A2000000                jz popAndPrint
+    75                                  
+    76 00000057 80FB26                      cmp bl,'&'                    ; if input bitwise and
+    77 0000005A 0F84AC000000                jz bitwiseAnd
+    78                                      
+    79 00000060 80FB7C                      cmp bl,'|'                    ; if input is or
+    80 00000063 0F84B6000000                jz bitwiseOr
+    81                                  
+    82 00000069 80FB6E                      cmp bl,'n'                    ; if input number of hexadecimal digits
+    83 0000006C 0F84C0000000                jz numOfDigits
+    84                                  
+    85 00000072 80FB2A                      cmp bl,'*'                    ; if input is multipication
+    86 00000075 0F84CA000000                jz multipiction
+    87                                      
+    88                                      ; if we reached here, input would be a number
+    89                                  
+    90                                  createLinkedList:
+    91                                      ; mov ecx, [input]
+    92                                      ; mov eax ,0
+    93                                      ; mov [index] , eax
+    94                                      ; movToEnd:
+    95                                      ;     mov ebx, [index]
+    96                                      ;     add ebx, [input]
+    97                                      ;     cmp byte[ebx], 0x10
+    98                                      ;     jz createLink
+    99                                      ;     sub byte[input], 0x48
+   100                                          
+   101                                      ;     inc byte input
+   102                                      ;     ;inc [index]
+   103                                      ;     jmp movToEnd
+   104                                      createLink:
+   105 0000007B 6A05                            push dword 5
+   106 0000007D E8(00000000)                    call malloc
+   107 00000082 83C404                          add esp, 4
+   108                                  
+   109 00000085 A3[6C000000]                    mov [nPTR], eax
+   110 0000008A 66B9[0000]                      mov cx, input
+   111 0000008E 66890D[6C000000]                mov [nPTR + nData] , cx
+   112 00000095 C705[6D000000]0000-             mov [nPTR + nNext] , dword 0
+   112 0000009D 0000               
+   113                                          mov [ opStack + 0] , [nPTR]
+   113          ******************       error: invalid combination of opcode and operands
+   114                                          inc input
+   114          ******************       error: invalid combination of opcode and operands
+   115 0000009F 6A05                            push dword 5
+   116 000000A1 E8(00000000)                    call malloc
+   117 000000A6 83C404                          add esp, 4
    118                                  
-   119                                          
-   120                                  
-   121                                  addition:
-   122                                      initialFunc
-   122 000000C1 60                  <1>  pushad
-   122 000000C2 55                  <1>  push ebp
-   122 000000C3 89E5                <1>  mov ebp, esp
-   122 000000C5 FF05[68000000]      <1>  inc dword [counter]
-   123                                      
-   124 000000CB 68[07000000]                push dword pDebug
-   125 000000D0 E8(00000000)                call printf
+   119                                          mov nPTR, eax
+   119          ******************       error: invalid combination of opcode and operands
+   120 000000A9 66B9[0000]                      mov cx, input
+   121 000000AD 66890D[6C000000]                mov [nPTR + nData] , cx
+   122 000000B4 C705[6D000000]0000-             mov [nPTR + nNext] , dword 0
+   122 000000BC 0000               
+   123                                          mov [ opStack + 1] , [nPTR]
+   123          ******************       error: invalid combination of opcode and operands
+   124                                          mov [opSp] , [opStack]
+   124          ******************       error: invalid combination of opcode and operands
+   125                                          mov [opSp + nNext] , [nPTR]        
+   125          ******************       error: invalid combination of opcode and operands
    126                                  
-   127 000000D5 8B25[64000000]              mov esp, [opSp]
-   128 000000DB 58                          pop eax
-   129 000000DC 5B                          pop ebx
-   130 000000DD 01C3                        add ebx, eax
-   131 000000DF 53                          push ebx
-   132                                  
-   133                                      finishingFunc
-   133 000000E0 89EC                <1>  mov esp, ebp
-   133 000000E2 5D                  <1>  pop ebp
-   133 000000E3 61                  <1>  popad
-   133 000000E4 E925FFFFFF          <1>  jmp getInput
-   134                                  duplicate:
-   135                                      initialFunc
-   135 000000E9 60                  <1>  pushad
-   135 000000EA 55                  <1>  push ebp
-   135 000000EB 89E5                <1>  mov ebp, esp
-   135 000000ED FF05[68000000]      <1>  inc dword [counter]
-   136                                  
-   137                                      finishingFunc
-   137 000000F3 89EC                <1>  mov esp, ebp
-   137 000000F5 5D                  <1>  pop ebp
-   137 000000F6 61                  <1>  popad
-   137 000000F7 E912FFFFFF          <1>  jmp getInput
-   138                                  popAndPrint:
-   139                                      initialFunc
-   139 000000FC 60                  <1>  pushad
-   139 000000FD 55                  <1>  push ebp
-   139 000000FE 89E5                <1>  mov ebp, esp
-   139 00000100 FF05[68000000]      <1>  inc dword [counter]
-   140                                  
-   141                                      finishingFunc
-   141 00000106 89EC                <1>  mov esp, ebp
-   141 00000108 5D                  <1>  pop ebp
-   141 00000109 61                  <1>  popad
-   141 0000010A E9FFFEFFFF          <1>  jmp getInput
-   142                                  
-   143                                  bitwiseAnd:
+   127                                     
+   128                                      
+   129                                  
+   130                                  addition:
+   131                                      initialFunc
+   131 000000BE 60                  <1>  pushad
+   131 000000BF 55                  <1>  push ebp
+   131 000000C0 89E5                <1>  mov ebp, esp
+   131 000000C2 FF05[68000000]      <1>  inc dword [counter]
+   132                                      
+   133 000000C8 68[07000000]                push dword pDebug
+   134 000000CD E8(00000000)                call printf
+   135                                  
+   136 000000D2 8B25[64000000]              mov esp, [opSp]
+   137 000000D8 58                          pop eax
+   138 000000D9 5B                          pop ebx
+   139 000000DA 01C3                        add ebx, eax
+   140 000000DC 53                          push ebx
+   141                                  
+   142                                      finishingFunc
+   142 000000DD 89EC                <1>  mov esp, ebp
+   142 000000DF 5D                  <1>  pop ebp
+   142 000000E0 61                  <1>  popad
+   142 000000E1 E928FFFFFF          <1>  jmp getInput
+   143                                  duplicate:
    144                                      initialFunc
-   144 0000010F 60                  <1>  pushad
-   144 00000110 55                  <1>  push ebp
-   144 00000111 89E5                <1>  mov ebp, esp
-   144 00000113 FF05[68000000]      <1>  inc dword [counter]
+   144 000000E6 60                  <1>  pushad
+   144 000000E7 55                  <1>  push ebp
+   144 000000E8 89E5                <1>  mov ebp, esp
+   144 000000EA FF05[68000000]      <1>  inc dword [counter]
    145                                  
    146                                      finishingFunc
-   146 00000119 89EC                <1>  mov esp, ebp
-   146 0000011B 5D                  <1>  pop ebp
-   146 0000011C 61                  <1>  popad
-   146 0000011D E9ECFEFFFF          <1>  jmp getInput
-   147                                  
-   148                                  bitwiseOr:
-   149                                      initialFunc
-   149 00000122 60                  <1>  pushad
-   149 00000123 55                  <1>  push ebp
-   149 00000124 89E5                <1>  mov ebp, esp
-   149 00000126 FF05[68000000]      <1>  inc dword [counter]
-   150                                  
-   151                                      finishingFunc
-   151 0000012C 89EC                <1>  mov esp, ebp
-   151 0000012E 5D                  <1>  pop ebp
-   151 0000012F 61                  <1>  popad
-   151 00000130 E9D9FEFFFF          <1>  jmp getInput
-   152                                  
-   153                                  numOfDigits:
-   154                                      initialFunc
-   154 00000135 60                  <1>  pushad
-   154 00000136 55                  <1>  push ebp
-   154 00000137 89E5                <1>  mov ebp, esp
-   154 00000139 FF05[68000000]      <1>  inc dword [counter]
-   155                                  
-   156                                      finishingFunc
-   156 0000013F 89EC                <1>  mov esp, ebp
-   156 00000141 5D                  <1>  pop ebp
-   156 00000142 61                  <1>  popad
-   156 00000143 E9C6FEFFFF          <1>  jmp getInput
-   157                                      
-   158                                  
-   159                                  multipiction:
-   160                                      initialFunc
-   160 00000148 60                  <1>  pushad
-   160 00000149 55                  <1>  push ebp
-   160 0000014A 89E5                <1>  mov ebp, esp
-   160 0000014C FF05[68000000]      <1>  inc dword [counter]
+   146 000000F0 89EC                <1>  mov esp, ebp
+   146 000000F2 5D                  <1>  pop ebp
+   146 000000F3 61                  <1>  popad
+   146 000000F4 E915FFFFFF          <1>  jmp getInput
+   147                                  popAndPrint:
+   148                                      initialFunc
+   148 000000F9 60                  <1>  pushad
+   148 000000FA 55                  <1>  push ebp
+   148 000000FB 89E5                <1>  mov ebp, esp
+   148 000000FD FF05[68000000]      <1>  inc dword [counter]
+   149                                  
+   150                                      finishingFunc
+   150 00000103 89EC                <1>  mov esp, ebp
+   150 00000105 5D                  <1>  pop ebp
+   150 00000106 61                  <1>  popad
+   150 00000107 E902FFFFFF          <1>  jmp getInput
+   151                                  
+   152                                  bitwiseAnd:
+   153                                      initialFunc
+   153 0000010C 60                  <1>  pushad
+   153 0000010D 55                  <1>  push ebp
+   153 0000010E 89E5                <1>  mov ebp, esp
+   153 00000110 FF05[68000000]      <1>  inc dword [counter]
+   154                                  
+   155                                      finishingFunc
+   155 00000116 89EC                <1>  mov esp, ebp
+   155 00000118 5D                  <1>  pop ebp
+   155 00000119 61                  <1>  popad
+   155 0000011A E9EFFEFFFF          <1>  jmp getInput
+   156                                  
+   157                                  bitwiseOr:
+   158                                      initialFunc
+   158 0000011F 60                  <1>  pushad
+   158 00000120 55                  <1>  push ebp
+   158 00000121 89E5                <1>  mov ebp, esp
+   158 00000123 FF05[68000000]      <1>  inc dword [counter]
+   159                                  
+   160                                      finishingFunc
+   160 00000129 89EC                <1>  mov esp, ebp
+   160 0000012B 5D                  <1>  pop ebp
+   160 0000012C 61                  <1>  popad
+   160 0000012D E9DCFEFFFF          <1>  jmp getInput
    161                                  
-   162                                      finishingFunc
-   162 00000152 89EC                <1>  mov esp, ebp
-   162 00000154 5D                  <1>  pop ebp
-   162 00000155 61                  <1>  popad
-   162 00000156 E9B3FEFFFF          <1>  jmp getInput
-   163                                  
-   164                                  emptyStackErr:
-   165                                  
-   166                                  stackOverflowErr:
+   162                                  numOfDigits:
+   163                                      initialFunc
+   163 00000132 60                  <1>  pushad
+   163 00000133 55                  <1>  push ebp
+   163 00000134 89E5                <1>  mov ebp, esp
+   163 00000136 FF05[68000000]      <1>  inc dword [counter]
+   164                                  
+   165                                      finishingFunc
+   165 0000013C 89EC                <1>  mov esp, ebp
+   165 0000013E 5D                  <1>  pop ebp
+   165 0000013F 61                  <1>  popad
+   165 00000140 E9C9FEFFFF          <1>  jmp getInput
+   166                                      
    167                                  
-   168                                  finish:
-   169 0000015B 61                          popad
-   170 0000015C 89EC                        mov esp, ebp
-   171 0000015E 5D                          pop ebp
+   168                                  multipiction:
+   169                                      initialFunc
+   169 00000145 60                  <1>  pushad
+   169 00000146 55                  <1>  push ebp
+   169 00000147 89E5                <1>  mov ebp, esp
+   169 00000149 FF05[68000000]      <1>  inc dword [counter]
+   170                                  
+   171                                      finishingFunc
+   171 0000014F 89EC                <1>  mov esp, ebp
+   171 00000151 5D                  <1>  pop ebp
+   171 00000152 61                  <1>  popad
+   171 00000153 E9B6FEFFFF          <1>  jmp getInput
    172                                  
-   173 0000015F B801000000                  mov eax,1
-   174 00000164 BB00000000                  mov ebx,0
-   175 00000169 B900000000                  mov ecx,0
-   176 0000016E BA00000000                  mov edx,0
-   177 00000173 CD80                        int 0x80
-   178                                  
-   179                                  
-   180                                  
+   173                                  emptyStackErr:
+   174                                  
+   175                                  stackOverflowErr:
+   176                                  
+   177                                  finish:
+   178 00000158 61                          popad
+   179 00000159 89EC                        mov esp, ebp
+   180 0000015B 5D                          pop ebp
+   181                                  
+   182 0000015C B801000000                  mov eax,1
+   183 00000161 BB00000000                  mov ebx,0
+   184 00000166 B900000000                  mov ecx,0
+   185 0000016B BA00000000                  mov edx,0
+   186 00000170 CD80                        int 0x80
+   187                                  
+   188                                  
+   189                                  
