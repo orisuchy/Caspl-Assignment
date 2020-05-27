@@ -22,7 +22,7 @@ section .bss
 section .data
 
 section .rodata
-    pCalc: db 'calc: ', 0
+    pCalc: db '\ncalc: ', 0
     pDebug: db 'DEBUG',10, 0
     nData: equ 0
     nNext: equ 1
@@ -43,6 +43,7 @@ section .text
 main:
     push ebp
     mov ebp, esp
+    ;mov eax , opSp
     mov [opSp], dword opStack ; initialize operand stack pointer
     pushad
 
@@ -87,73 +88,23 @@ getInput:
 
     ; if reached here, input is a number
 
-    
+    mov ebx, [opSp]
+    mov [ebx], dword input
+    add ebx, dword 4
+    mov eax ,[opStack]
+    push eax
+    call printf
+    jmp getInput
 
-; createLinkedList:
-;     initialFunc
-    
-;     ; mov ecx, [input]
-;     ; mov eax ,0
-;     ; mov [index] , eax
-;     ; movToEnd:
-;     ; mov ebx, [index]
-;     ; add ebx, [input]
-;     ; cmp byte[ebx], 0x10
-;     ; jz createLink
-;     ; sub byte[input], 0x48
 
-;     ; inc byte input
-;     ; ;inc [index]
-;     ; jmp movToEnd
-;     createLink:
-;         push dword 5
-;         call malloc
-;         add esp, 4
-;         mov [nPTR], eax
-;         mov ecx, input
-;         mov [nPTR + nData] , ecx
-;         mov [nPTR + nNext] , dword 0
-;         mov ebx, [nPTR]
-;         mov [opSp] , ebx
-;         mov edx, opSp + 4
-;         mov [opSp] , edx 
-;         ;add [input],word 1
-
-;         ; push dword 5
-;         ; call malloc
-;         ; add esp, 4
-;         ; mov [nPTR], eax
-;         ; mov cx, input
-;         ; mov [nPTR + nData] , cx
-;         ; mov [nPTR + nNext] , dword 0
-;         ; mov ebx, [nPTR]
-;         ; mov [ opStack + 4 ] , ebx
-
-;         ; mov ebx, [opStack]
-;         ; mov [opSp] , ebx
-;         ; mov ebx, [nPTR]
-;         ; mov [opSp + nNext] , ebx
-
-;         finishingFunc
 
 
 
 
 addition:
     initialFunc
-
-    ; push dword pDebug
-    ; call printf
-
-    ; mov esp, [opSp]
-    ; mov ebp, esp
-    mov eax, [opSp]
-    mov ebx, [opSp+4]
-    add ebx, eax
-    ;mov eax ,[ebx+nData]
-    push ebx
-    call printf
-    push dword pDebug
+    mov eax ,dword [opSp]
+    push eax
     call printf
     finishingFunc
 duplicate:
