@@ -14,13 +14,13 @@
 %endmacro
 section .bss
     input: resb 80            ; input - max 80 bytes
+    cleaninput: resb 80
     opStack: resb 5*4         ; operands stack
     opSp: resb 4              ; operands stack pointer
-    counter: resb 4           ; operation counter
     nPTR: resb 4
     index: resb 4
 section .data
-
+    counter: dd 0           ; operation counter
 section .rodata
     pCalc: db 'calc: ', 0
     pDebug: db 'DEBUG',10, 0
@@ -36,7 +36,7 @@ section .text
   extern malloc
   extern calloc
   extern free
-  extern gets
+ ; extern gets
   extern getchar
   extern fgets
   extern stdin
@@ -87,54 +87,62 @@ getInput:
 
     ; if reached here, input is a number
 
-    
+isNum:
+    push cleaninput
+    push input
+    call createLinkList
+    mov ebx, [opSp]
+    mov [ebx], eax
+    add [opSp], dword 4
+    jmp getInput
 
-; createLinkedList:
-;     initialFunc
-    
-;     ; mov ecx, [input]
-;     ; mov eax ,0
-;     ; mov [index] , eax
-;     ; movToEnd:
-;     ; mov ebx, [index]
-;     ; add ebx, [input]
-;     ; cmp byte[ebx], 0x10
-;     ; jz createLink
-;     ; sub byte[input], 0x48
 
-;     ; inc byte input
-;     ; ;inc [index]
-;     ; jmp movToEnd
-;     createLink:
-;         push dword 5
-;         call malloc
-;         add esp, 4
-;         mov [nPTR], eax
-;         mov ecx, input
-;         mov [nPTR + nData] , ecx
-;         mov [nPTR + nNext] , dword 0
-;         mov ebx, [nPTR]
-;         mov [opSp] , ebx
-;         mov edx, opSp + 4
-;         mov [opSp] , edx 
-;         ;add [input],word 1
+    createLinkList:
+        initialFunc
+        skipZeroes:
+            mov ecx, [ebp + 8]
+            mov bl, [ecx]
+            cmp bl, 48
+            jnz createLinks
+            inc ecx
+            jmp skipZeroes
 
-;         ; push dword 5
-;         ; call malloc
-;         ; add esp, 4
-;         ; mov [nPTR], eax
-;         ; mov cx, input
-;         ; mov [nPTR + nData] , cx
-;         ; mov [nPTR + nNext] , dword 0
-;         ; mov ebx, [nPTR]
-;         ; mov [ opStack + 4 ] , ebx
+        createLinks:
+            nextlink: dd 0
+        createLink:
+            mov [ebp + 12], ecx
+            pushad
+            push dword 5
+            call malloc
+            add esp, 4         ;eax - pointer to link, ecx - clean input
+            ;mov ebx, nPTR
+            ;mov ebx, eax
+            mov bl, [ebp + 12]     
+            mov [eax + nData] , bl
+            mov [eax + nNext] , dword nextlink
+            mov [nextlink], eax
+            mov ebx, [nPTR]
+            mov [opSp] , ebx
+            mov edx, opSp + 4
+            mov [opSp] , edx 
+            ;add [input],word 1
 
-;         ; mov ebx, [opStack]
-;         ; mov [opSp] , ebx
-;         ; mov ebx, [nPTR]
-;         ; mov [opSp + nNext] , ebx
+            ; push dword 5
+            ; call malloc
+            ; add esp, 4
+            ; mov [nPTR], eax
+            ; mov cx, input
+            ; mov [nPTR + nData] , cx
+            ; mov [nPTR + nNext] , dword 0
+            ; mov ebx, [nPTR]
+            ; mov [ opStack + 4 ] , ebx
 
-;         finishingFunc
+            ; mov ebx, [opStack]
+            ; mov [opSp] , ebx
+            ; mov ebx, [nPTR]
+            ; mov [opSp + nNext] , ebx
+
+            finishingFunc
 
 
 

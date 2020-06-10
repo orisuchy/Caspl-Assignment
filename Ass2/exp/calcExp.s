@@ -3,7 +3,7 @@
     pushad
     push ebp
     mov ebp, esp
-    inc dword [counter]
+    inc byte [counter]
 %endmacro
 
 %macro finishingFunc 0
@@ -16,14 +16,14 @@ section .bss
     input: resb 80            ; input - max 80 bytes
     opStack: resb 5*4         ; operands stack
     opSp: resb 4              ; operands stack pointer
-    counter: resb 4           ; operation counter
     nPTR: resb 4
     index: resb 4
 section .data
-
+    counter: dd 0           ; operation counter
 section .rodata
-    pCalc: db '\ncalc: ', 0
+    pCalc: db 10, 'calc: ', 0
     pDebug: db 'DEBUG',10, 0
+    pSemek: db '--------',10, 0
     nData: equ 0
     nNext: equ 1
 
@@ -36,14 +36,13 @@ section .text
   extern malloc
   extern calloc
   extern free
-  extern gets
+  ;extern gets
   extern getchar
   extern fgets
   extern stdin
 main:
     push ebp
     mov ebp, esp
-    ;mov eax , opSp
     mov [opSp], dword opStack ; initialize operand stack pointer
     pushad
 
@@ -87,12 +86,12 @@ getInput:
     jz multipiction
 
     ; if reached here, input is a number
-
-    mov ebx, [opSp]
-    mov [ebx], dword input
-    add ebx, dword 4
-    mov eax ,[opStack]
-    push eax
+isNum:
+    mov eax, dword [input]                            ; numList pointer
+    mov ecx, [opSp]
+    mov [ecx],eax
+    add [opSp],dword 4
+    push pSemek
     call printf
     jmp getInput
 
@@ -104,6 +103,13 @@ getInput:
 addition:
     initialFunc
     mov eax ,dword [opSp]
+    sub eax ,dword 4
+    mov eax, [eax]
+    mov ebx ,dword [opSp]
+    sub ebx ,dword 8
+    mov ebx, [ebx]
+    add eax, ebx
+
     push eax
     call printf
     finishingFunc
@@ -113,7 +119,10 @@ duplicate:
     finishingFunc
 popAndPrint:
     initialFunc
-
+    mov ecx ,dword [opSp]
+    sub ecx ,dword 8
+    push dword [ecx]
+    call printf
     finishingFunc
 
 bitwiseAnd:
