@@ -37,19 +37,29 @@
     add     ebx, 4
 %endmacro
 
-%macro  print 2
-	syscall3 4, 1, %1, %2   ; print "message" length
+%macro  printOut 2
+	pushad
+    pushfd
+    push dword %1             ; 3rd arg, string pointer
+    push dword %2             ; 2nd arg, format string
+    call printf     
+    add esp, 8
+    popfd
+    popad
 %endmacro
 section	.rodata
     format_d: db "%d", 10, 0
     format_s: db "%s", 10, 0
     format_f: db "%f", 10, 0
+    
+    here: db "here", 10, 0
+    check: db "bla bla", 10, 0
 section .bss
 section .data
     numOfDrones: dd 0
     numOfcycles: dd 0
     stepsToPrint: dd 0
-    maxDist: dd 0
+    maxDist: dd 0 ; TODO: need to be dt for floating point
     seed:dd 0
 section .text
     global main
@@ -59,6 +69,7 @@ section .text
     extern malloc
     extern calloc
     extern free
+    ;extern stdout
 main:
     ; push ebp                        ;
     ; mov ebp, esp
@@ -68,10 +79,18 @@ main:
     cmp eax, 6h       ; verify num of args (5+1)
     jne exitErr
     add ebx, 4 ; skip a.out
+
     scanNextTo numOfDrones, format_d
-    scanNextTo numOfcycles, format_d 
-    scanNextTo maxDist, format_f 
-    scanNextTo seed, format_d  
+    scanNextTo numOfcycles, format_d
+    scanNextTo stepsToPrint, format_d
+    scanNextTo maxDist, format_d ; TODO: need to be format_f for floating point
+    scanNextTo seed, format_d
+    ;Print to check - still have problem with float
+    printOut [numOfDrones], format_d
+    printOut [numOfcycles], format_d
+    printOut [stepsToPrint], format_d
+    printOut [maxDist], format_d ; TODO: need to be format_f for floating point
+    printOut [seed], format_d
     exit 0
 
 exitErr:
