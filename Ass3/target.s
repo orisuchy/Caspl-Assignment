@@ -4,3 +4,20 @@
 ; createTarget():
 ; (*) Generate a random x coordinate
 ; (*) Generate a random y coordinate
+section	.rodata
+section .data
+section .bss
+section .text
+    global runTarget
+    extern calcLFSRrandom
+    
+
+runTarget:
+    push    ebp
+    mov     ebp, esp
+    pushad
+    call    createTarget
+
+
+
+createTarget:

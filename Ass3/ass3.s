@@ -9,25 +9,25 @@
 ; > ass3 <N> <R> <K> <d> <seed>
 ; For example: > ass3 5 8 10 30 15019
 %macro	syscall1 2
-	mov	ebx, %2
-	mov	eax, %1
-	int	0x80
+    mov	ebx, %2
+    mov	eax, %1
+    int	0x80
 %endmacro
 
 %macro	syscall3 4
-	mov	edx, %4
-	mov	ecx, %3
-	mov	ebx, %2
-	mov	eax, %1
-	int	0x80
+    mov	edx, %4
+    mov	ecx, %3
+    mov	ebx, %2
+    mov	eax, %1
+    int	0x80
 %endmacro
 
 %macro  exit 1
-	syscall1 1, %1 ; 0 - no errors, -1 - with error
+    syscall1 1, %1                         ; 0 - no errors, -1 - with error
 %endmacro
 
 %macro  scanNextTo 2
-	pushad
+    pushad
     push    dword %1
     push    %2
     push    dword [ebx]
@@ -38,29 +38,96 @@
 %endmacro
 
 %macro  printOut 2
-	pushad
+    pushad
     pushfd
-    push dword %1             ; 3rd arg, string pointer
-    push dword %2             ; 2nd arg, format string
-    call printf     
+    push dword %1                          ; 3rd arg, string pointer
+    push dword %2                          ; 2nd arg, format string
+    call printf
     add esp, 8
     popfd
     popad
 %endmacro
+
+%macro initCoroutine 1
+    mov     dword ebx, %1                  ; get Pointer to cor struct
+    mov     dword eax, [ebx + corFuncOff]  ; get initial EIP value - pointer to CO function
+    mov     dword [tempESP], esp           ; save esp value
+    mov     esp, [ebx + corStackOff]       ; get initial ESP value – pointer to COi stack
+    push    eax                            ; push return address
+    pushfd                                 ; push flags
+    pushad                                 ; push registers
+    mov     [ebx + corStackOff], esp       ; save new SPi value
+    mov     dword esp, [tempESP]
+%endmacro
+
+;getBit %2 = 16-bitNum(for SHR), %1 = 2^%2 (to get the bit with AND)
+%macro getBit 2
+    pushad
+    mov dword eax, 0
+    mov dword eax, [seed]
+    and eax, %1
+    shr eax, %2
+    popad
+%endmacro
 section	.rodata
-    format_d: db "%d", 10, 0
-    format_s: db "%s", 10, 0
-    format_f: db "%f", 10, 0
-    
-    here: db "here", 10, 0
-    check: db "bla bla", 10, 0
+    ; ____ Global Formats ____
+    global format_d
+    global format_s
+    global format_f
+    ; ____ Global Offsets ____
+    global corFuncOff
+    global corStackOff
+
+    format_d: db "%d", 0
+    format_s: db "%s", 0
+    format_f: db "%f", 0
+    ; format with "\n" for printing
+    pformat_d: db "%d", 10, 0
+    pformat_s: db "%s", 10, 0
+    pformat_f: db "%f", 10, 0
+
+    corFuncOff equ 0
+    corStackOff equ 4
+
+    stackSize equ 16*1024                  ; 16 kb
 section .bss
+    printerStack: resb stackSize
+    targetStack: resb stackSize
+    schedulerStack: resb stackSize
+    droneStack: resb stackSize
+    tempESP: resd 1
+
 section .data
+    ; ____ Global Vars ____
+    global numOfDrones
+    global numOfcycles
+    global stepsToPrint
+    global maxDist
+    global randomNum
+    ; ____ Global Co-routines ____
+    global schedulerCor
+    global printerCor
+    global targetCor
+    global droneCor
+
     numOfDrones: dd 0
     numOfcycles: dd 0
     stepsToPrint: dd 0
-    maxDist: dd 0 ; TODO: need to be dt for floating point
+    maxDist: dt 7.0                        ; TODO: need to be dt for floating point
     seed:dd 0
+    seed16bit: dd 0
+    seed14bit: dd 0
+    seed13bit: dd 0
+    seed11bit: dd 0
+    randomNum: dd 0
+    schedulerCor: dd runScheduler
+                dd schedulerStack + stackSize
+    printerCor:  dd runPrinter
+                dd printerStack + stackSize
+    targetCor: dd runTarget
+              dd targetStack + stackSize
+    droneCor: dd runDrone
+              dd droneStack + stackSize
 section .text
     global main
     extern printf
@@ -69,29 +136,64 @@ section .text
     extern malloc
     extern calloc
     extern free
-    ;extern stdout
+    ; extern stdout
 main:
-    ; push ebp                        ;
-    ; mov ebp, esp
-    ; sub esp, 8 
-    mov eax, [esp+4] ;argc
-    mov ebx, [esp+8] ;argv <N> <R> <K> <d> <seed>
-    cmp eax, 6h       ; verify num of args (5+1)
+    push ebp
+    mov ebp, esp
+    sub esp, 4
+    mov eax, [ebp+8]                       ; argc
+    mov ebx, [ebp+12]                      ; argv <N> <R> <K> <d> <seed>
+    cmp eax, 6h                            ; verify num of args (5+1)
     jne exitErr
-    add ebx, 4 ; skip a.out
-
+    add ebx, 4                             ; skip ./ass3
+                                           ; ___________ Args to Variables ___________
     scanNextTo numOfDrones, format_d
     scanNextTo numOfcycles, format_d
     scanNextTo stepsToPrint, format_d
-    scanNextTo maxDist, format_d ; TODO: need to be format_f for floating point
+    scanNextTo maxDist, format_f           ; TODO: need to be format_f for floating point
     scanNextTo seed, format_d
-    ;Print to check - still have problem with float
-    printOut [numOfDrones], format_d
-    printOut [numOfcycles], format_d
-    printOut [stepsToPrint], format_d
-    printOut [maxDist], format_d ; TODO: need to be format_f for floating point
-    printOut [seed], format_d
+
+    ; ; ;___________ Print args ___________
+    ; printOut [numOfDrones], pformat_d
+    ; printOut [numOfcycles], pformat_d
+    ; printOut [stepsToPrint], pformat_d
+    ; printOut [maxDist], pformat_f ; TODO: need to be format_f for floating point
+    ; printOut [seed], pformat_d
+
+    initCoroutine schedulerCor
+    initCoroutine printerCor
+    initCoroutine targetCor
+    initCoroutine droneCor
+
+
+calcLFSRrandom:
+    push ebp
+    mov ebp,esp
+    sub esp,4
+    ;____ Get Bits From Seed ____
+    ;getBit %2 = 16-bitNum (for SHR), %1 = 2^%2 (to get the bit with AND)
+    getBit 1,0                        ; bit 16
+    mov dword[seed16bit], eax 
+    getBit 4,2                        ; bit 14
+    mov dword[seed14bit], eax 
+    getBit 8,3                        ; bit 13
+    mov dword[seed13bit], eax 
+    getBit 32,5                       ; bit 11
+    mov dword[seed11bit], eax 
+    ;_____ Xor Actions ____
+    mov dword eax, 0
+    mov dword ebx, 0
+    mov dword eax, [seed16bit]
+    mov dword ebx, [seed14bit]
+    xor eax, ebx
+    mov dword ebx, [seed13bit]
+    xor eax, ebx
+    mov dword ebx, [seed11bit]
+    xor eax, ebx
+    ; -------------------------what now?-------------------
+    cmp eax, 0
+exitNormal:
     exit 0
 
 exitErr:
-    exit -1    
+    exit -1
