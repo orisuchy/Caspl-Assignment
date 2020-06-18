@@ -85,7 +85,9 @@ section	.rodata
     pformat_s: db "%s", 10, 0
     pformat_f: db "%f", 10, 0
 
-    random_print: db "Random Number-"
+
+    random_print: db "Random Number - ",0
+    next_bit: db "next bit - ",0
     corFuncOff equ 0
     corStackOff equ 4
 
@@ -147,7 +149,7 @@ main:
     cmp eax, 6h                             ; verify num of args (5+1)
     jne exitErr
     add ebx, 4                              ; skip ./ass3
-                                            ; ___________ Args to Variables ___________
+    ; ___________ Args to Variables ___________
     scanNextTo numOfDrones, format_d
     scanNextTo numOfcycles, format_d
     scanNextTo stepsToPrint, format_d
@@ -158,14 +160,14 @@ main:
 
     call calcLFSRrandom
 
-    ; ; ;___________ Print args ___________
-    printOut [numOfDrones], pformat_d
-    printOut [numOfcycles], pformat_d
-    printOut [stepsToPrint], pformat_d
-    printOut [maxDist], pformat_f ; TODO: need to be format_f for floating point
-    printOut [seed], pformat_d
-    printOut [tempSeed], pformat_d
-    printOut random_print, pformat_s
+    ; ___________ Print args for debug ___________
+    ; printOut [numOfDrones], pformat_d
+    ; printOut [numOfcycles], pformat_d
+    ; printOut [stepsToPrint], pformat_d
+    ; printOut [maxDist], pformat_f ; TODO: need to be format_f for floating point
+    ; printOut [seed], pformat_d
+    ;printOut [tempSeed], pformat_d
+    printOut random_print, format_s
     printOut [randomNum], pformat_d
     jmp exitNormal
     ; initCoroutine schedulerCor
@@ -182,10 +184,11 @@ calcLFSRrandom:
     mov ecx,0                               ; rounds counter to 15 (16 rounds)
     mov dword [randomNum], 0
         randLoop:
-            cmp ecx, 5
-            je randomReady
-            ; ____ Get Bits From Seed ____
-            ; getBit %2 = 16-bitNum (for SHR), %1 = 2^%2 (to get the bit with AND)
+        cmp ecx, 16
+        je randomReady
+
+        ; ____ Get Bits From Seed ____
+        ; getBit %2 = 16-bitNum (for SHR), %1 = 2^%2 (to get the bit with AND)
         getBit 1,0                          ; bit 16
         mov dword[seed16bit], eax
         popad
@@ -210,11 +213,20 @@ calcLFSRrandom:
         mov dword ebx, [seed11bit]
         xor eax, ebx
 
+        ; ; print next bit for debug
+        ; printOut next_bit, format_s
+        ; printOut eax, pformat_d
+
         ; _____Add Bit To Random Number _____
         mov ebx, 0
         mov dword ebx, [randomNum]
-        shl ebx, 1
         add ebx, eax
+
+        ; ; Print Random Number Status for debug
+        ; printOut random_print, format_s
+        ; printOut [randomNum], pformat_d
+
+        shl ebx, 1
         mov dword[randomNum], ebx
 
         ; _____Arrange ROR _____
@@ -234,8 +246,14 @@ calcLFSRrandom:
         inc ecx
         jmp randLoop
     randomReady:
+        ;___ Cancell Last Shift ___
+        mov ebx, 0
+        mov dword ebx, [randomNum]
+        shr ebx, 1
+        mov dword[randomNum], ebx
+
         mov esp,ebp
-        pop
+        pop ebp
         ret
 
 ; ===== Exits =====
