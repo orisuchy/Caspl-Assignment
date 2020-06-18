@@ -28,9 +28,9 @@
 
 %macro  scanNextTo 2
     pushad
-    push    dword %1
+    push    %1
     push    %2
-    push    dword [ebx]
+    push    dword[ebx]
     call    sscanf
     add     esp, 12
     popad
@@ -68,6 +68,8 @@
     and eax, %1
     shr eax, %2
 %endmacro
+
+
 section	.rodata
     ; ____ Global Formats ____
     global format_d
@@ -84,10 +86,12 @@ section	.rodata
     pformat_d: db "%d", 10, 0
     pformat_s: db "%s", 10, 0
     pformat_f: db "%f", 10, 0
+    ;pformat_position: db "%.2f,%.2f", 10, 0
 
-
+    ; prints for debug
     random_print: db "Random Number - ",0
     next_bit: db "next bit - ",0
+
     corFuncOff equ 0
     corStackOff equ 4
 
@@ -112,27 +116,28 @@ section .data
     global targetCor
     global droneCor
 
+
     numOfDrones: dd 0
     numOfcycles: dd 0
     stepsToPrint: dd 0
-    maxDist: dt 7.0                         ; TODO: need to be dt for floating point
+    maxDist: dt 0.0                         ; TODO: need to be dt for floating point
     seed:dd 0
     tempSeed: dd 0
     seed16bit: dd 0
     seed14bit: dd 0
     seed13bit: dd 0
     seed11bit: dd 0
-    randomNum: dd 0
+    randomNum: dd 0.0
+    ;scale: dd 0.0
     ; schedulerCor: dd runScheduler
-    ;             dd schedulerStack + stackSize
+    ; dd schedulerStack + stackSize
     ; printerCor:  dd runPrinter
-    ;             dd printerStack + stackSize
+    ; dd printerStack + stackSize
     ; targetCor: dd runTarget
-    ;           dd targetStack + stackSize
+    ; dd targetStack + stackSize
     ; droneCor: dd runDrone
-    ;           dd droneStack + stackSize
+    ; dd droneStack + stackSize
 section .text
-    global main
     extern printf
     extern fprintf
     extern sscanf
@@ -140,6 +145,10 @@ section .text
     extern calloc
     extern free
     ; extern stdout
+    ; ____ Global Functions ____
+    global main
+    global calcLFSRrandom
+    global scaleTo
 main:
     push ebp
     mov ebp, esp
@@ -149,114 +158,144 @@ main:
     cmp eax, 6h                             ; verify num of args (5+1)
     jne exitErr
     add ebx, 4                              ; skip ./ass3
-    ; ___________ Args to Variables ___________
+                                            ; ___________ Args to Variables ___________
     scanNextTo numOfDrones, format_d
     scanNextTo numOfcycles, format_d
     scanNextTo stepsToPrint, format_d
     scanNextTo maxDist, format_f            ; TODO: need to be format_f for floating point
+    fild dword [maxDist]
+    fstp dword [maxDist]
     scanNextTo seed, format_d
     mov eax, [seed]
     mov [tempSeed], eax
 
     call calcLFSRrandom
 
-    ; ___________ Print args for debug ___________
+    printOut random_print, format_s
+    printOut dword[randomNum], pformat_d
+
+    push randomNum
+    mov dword eax,100
+    push eax
+    call scaleTo
+    printOut [scale], pformat_f
+    ; ; ___________ Print args for debug ___________
     ; printOut [numOfDrones], pformat_d
     ; printOut [numOfcycles], pformat_d
     ; printOut [stepsToPrint], pformat_d
-    ; printOut [maxDist], pformat_f ; TODO: need to be format_f for floating point
+    printOut [maxDist], pformat_f ; TODO: need to be format_f for floating point
     ; printOut [seed], pformat_d
-    ;printOut [tempSeed], pformat_d
-    printOut random_print, format_s
-    printOut [randomNum], pformat_d
-    jmp exitNormal
+    ; printOut [tempSeed], pformat_d
+
+
     ; initCoroutine schedulerCor
     ; initCoroutine printerCor
     ; initCoroutine targetCor
     ; initCoroutine droneCor
+    jmp exitNormal
 
-; ===== Function To Calculate Random Number =====
+    ; ===== Function To Calculate Random Number =====
 calcLFSRrandom:
-    push ebp
-    mov ebp,esp
-    sub esp,4
+    push    ebp
+    mov     ebp,esp
+    sub     esp,4
 
-    mov ecx,0                               ; rounds counter to 15 (16 rounds)
-    mov dword [randomNum], 0
+    mov     ecx,0                           ; rounds counter to 15 (16 rounds)
+    mov     dword [randomNum], 0
         randLoop:
-        cmp ecx, 16
+        cmp     ecx, 16
         je randomReady
 
         ; ____ Get Bits From Seed ____
         ; getBit %2 = 16-bitNum (for SHR), %1 = 2^%2 (to get the bit with AND)
         getBit 1,0                          ; bit 16
-        mov dword[seed16bit], eax
+        mov     dword[seed16bit], eax
         popad
         getBit 4,2                          ; bit 14
-        mov dword[seed14bit], eax
+        mov     dword[seed14bit], eax
         popad
         getBit 8,3                          ; bit 13
-        mov dword[seed13bit], eax
+        mov     dword[seed13bit], eax
         popad
         getBit 32,5                         ; bit 11
-        mov dword[seed11bit], eax
+        mov     dword[seed11bit], eax
         popad
 
         ; _____ Xor Actions ____
-        mov dword eax, 0
-        mov dword ebx, 0
-        mov dword eax, [seed16bit]
-        mov dword ebx, [seed14bit]
-        xor eax, ebx
-        mov dword ebx, [seed13bit]
-        xor eax, ebx
-        mov dword ebx, [seed11bit]
-        xor eax, ebx
+        mov     dword eax, 0
+        mov     dword ebx, 0
+        mov     dword eax, [seed16bit]
+        mov     dword ebx, [seed14bit]
+        xor     eax, ebx
+        mov     dword ebx, [seed13bit]
+        xor     eax, ebx
+        mov     dword ebx, [seed11bit]
+        xor     eax, ebx
 
         ; ; print next bit for debug
         ; printOut next_bit, format_s
         ; printOut eax, pformat_d
 
         ; _____Add Bit To Random Number _____
-        mov ebx, 0
-        mov dword ebx, [randomNum]
-        add ebx, eax
+        mov     ebx, 0
+        mov     dword ebx, [randomNum]
+        add     ebx, eax
 
         ; ; Print Random Number Status for debug
         ; printOut random_print, format_s
         ; printOut [randomNum], pformat_d
 
-        shl ebx, 1
-        mov dword[randomNum], ebx
+        shl     ebx, 1
+        mov     dword[randomNum], ebx
 
         ; _____Arrange ROR _____
-        mov dword edx, 0
-        mov dword edx, [tempSeed]
-        cmp eax, 0
-        jne notZero
-        mov dword eax, 1                    ; eax = 0000..1
-        not eax                             ; eax = 1111..0
-        and edx, eax                        ; change last byte to 0
-        jmp readyToRor
+        mov     dword edx, 0
+        mov     dword edx, [tempSeed]
+        cmp     eax, 0
+        jne     notZero
+        mov     dword eax, 1                ; eax = 0000..1
+        not     eax                         ; eax = 1111..0
+        and     edx, eax                    ; change last byte to 0
+        jmp     readyToRor
         notZero:
-        or eax, edx                         ; change last byte to 1
+        or      eax, edx                    ; change last byte to 1
         readyToRor:
-        ror edx, 1
-        mov [tempSeed], edx
-        inc ecx
-        jmp randLoop
+        ror     edx, 1
+        mov     [tempSeed], edx
+        inc     ecx
+        jmp     randLoop
     randomReady:
-        ;___ Cancell Last Shift ___
-        mov ebx, 0
-        mov dword ebx, [randomNum]
-        shr ebx, 1
-        mov dword[randomNum], ebx
-
-        mov esp,ebp
-        pop ebp
+        ; ___ Cancell Last Shift ___
+        mov     ebx, 0
+        mov     dword ebx, [randomNum]
+        shr     ebx, 1
+        mov     dword[randomNum], ebx
+        ; should we reset the tempSeed? Think not to get better random
+        mov     esp,ebp
+        pop     ebp
         ret
+scaleTo:
+    ; To use need to push the number to scale and the scale measures
+    push    ebp
+    mov     ebp, esp
+    mov     dword eax, [ebp+8]                    ; scale measures
+    mov     dword ebx, [ebp+12]                   ; number to scale
+    finit
+    fild    dword [ebx]                     ; push float
+    mov     dword [ebx], 0xfff             ; max int for 16bit
+    fidiv   dword [ebx]                     ; number/ffff
+    mov     dword [ebx], eax
+    fimul   dword [ebx]                     ; (number/ffff) * scale
+    fstp    dword [ebx]
+    ; mov dword ecx, [ebp+8]
+    ; mov dword eax, [ecx]
+    mov     esp,ebp
+    pop     ebp
+    ret
 
-; ===== Exits =====
+
+
+    ; ===== Exits =====
 exitNormal:
     exit 0
 
