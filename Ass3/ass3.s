@@ -38,14 +38,14 @@
 %endmacro
 
 %macro  printOut 2
-    pushad
-    pushfd
+    ; pushad
+    ; pushfd
     push    dword %1                         ; 3rd arg, string pointer
     push    dword %2                         ; 2nd arg, format string
     call    printf
     add     esp, 8
-    popfd
-    popad
+    ; popfd
+    ; popad
 %endmacro
 
 %macro initCoroutine 1
@@ -91,7 +91,7 @@ section	.rodata
     ; prints for debug
     random_print: db "Random Number - ",0
     next_bit:     db "next bit - ",0
-
+    scaled_print: db "Scaled number - ",0
     corFuncOff  equ 0
     corStackOff equ 4
 
@@ -128,7 +128,7 @@ section .data
     seed13bit:      dd 0
     seed11bit:      dd 0
     randomNum:      dd 0.0
-    ; scale:          dd 0.0
+    scale:          dd 0.0
     ; schedulerCor:   dd runScheduler
     ;                 dd schedulerStack + stackSize
     ; printerCor:     dd runPrinter
@@ -163,29 +163,34 @@ main:
     scanNextTo numOfcycles, format_d
     scanNextTo stepsToPrint, format_d
     scanNextTo maxDist, format_f             ; TODO: need to be format_f for floating point
-    fild dword [maxDist]
-    fstp dword [maxDist]
+    ; fild dword [maxDist]
+    ; fstp dword [maxDist]
     scanNextTo seed, format_d
     mov     eax, [seed]
     mov     [tempSeed], eax
 
     call calcLFSRrandom
-
-    printOut random_print, format_s
-    printOut dword[randomNum], pformat_d
+    ; ;_____ for debug ____
+    ; printOut random_print, format_s
+    ; printOut dword[randomNum], pformat_d
 
     push randomNum
     mov     dword eax,100
     push    eax
     call scaleTo
-    printOut [scale], pformat_f
+
+    ; ;_____ for debug ____
+    ; printOut scaled_print, format_s
+    ; printOut [scale], pformat_d
+
     ; ; ___________ Print args for debug ___________
-    printOut [numOfDrones], pformat_d
-    printOut [numOfcycles], pformat_d
-    printOut [stepsToPrint], pformat_d
-    printOut [maxDist], pformat_f            ; TODO: need to be format_f for floating point
-    printOut [seed], pformat_d
-    printOut [tempSeed], pformat_d
+    ; printOut [numOfDrones], pformat_d
+    ; printOut [numOfcycles], pformat_d
+    ; printOut [stepsToPrint], pformat_d
+    ; printOut [maxDist], pformat_f
+    ; printOut [maxDist], pformat_d            ; TODO: need to be format_f for floating point
+    ; printOut [seed], pformat_d
+    ; printOut [tempSeed], pformat_d
 
 
     ; initCoroutine schedulerCor
