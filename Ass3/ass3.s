@@ -89,12 +89,12 @@ section	.rodata
     ; format with "\n" for printing
     pformat_d:  db "%d", 10, 0
     pformat_s:  db "%s", 10, 0
-    pformat_f:  db "%f", 10, 0
+    pformat_f:  db "%.2f", 10, 0
     ; pformat_position: db "%.2f,%.2f", 10, 0
 
     ; prints for debug
     random_print: db "Random Number - ",0
-    next_bit:     db "next bit - ",0
+    next_bit:     db "next bit - "     ,0
     scaled_print: db "Scaled number - ",0
     corFuncOff  equ 0
     corStackOff equ 4
@@ -171,40 +171,46 @@ main:
     sub     esp, 4
     mov     eax, [ebp+8]                         ; argc
     mov     ebx, [ebp+12]                        ; argv <N> <R> <K> <d> <seed>
-    cmp     eax, 6h                              ; verify num of args (5+1)
-    jne     exitErr
+    ; cmp     eax, 6h                              ; verify num of args (5+1)
+    ; jne     exitErr
     add     ebx, 4                               ; skip ./ass3
     ; ___________ Args to Variables ___________
-    scanNextTo numOfDrones, format_d
-    scanNextTo numOfcycles, format_d
-    scanNextTo stepsToPrint, format_d
+    ;scanNextTo numOfDrones, format_d
+    ; scanNextTo numOfcycles, format_d
+    ; scanNextTo stepsToPrint, format_d
     scanNextTo maxDist, format_f             ; TODO: need to be format_f for floating point
     ; fild dword [maxDist]
     ; fstp dword [maxDist]
-    scanNextTo seed, format_d
-    mov     eax, [seed]
-    mov     [tempSeed], eax
+    ; scanNextTo seed, format_d
+    ; mov     eax, [seed]
+    ; mov     [tempSeed], eax
     
-    call calcLFSRrandom
-    ; ;_____ for debug ____
-    printOut random_print, format_s
-    printOut [randomNum], pformat_d
-    
-    push randomNum
-    mov     dword eax,  100
-    push    eax
-    call scaleTo
 
-    ; ;_____ for debug ____
-    printOut scaled_print, format_s
-    printOut [scale], pformat_d
-    call runTarget
-    ; ; ___________ Print args for debug ___________
+    ; call calcLFSRrandom
+    ; ; ;_____ for debug ____
+    ; printOut random_print, format_s
+    ; printOut [randomNum], pformat_d
+    
+    ; push randomNum
+    ; mov     dword eax,  100
+    ; push    eax
+    ; call scaleTo
+
+    ; ; ;_____ for debug ____
+    ; printOut scaled_print, format_s
+    ; printOut [scale], pformat_f
+    ; ;call runTarget
+    ; ___________ Print args for debug ___________
     ; printOut [numOfDrones], pformat_d
     ; printOut [numOfcycles], pformat_d
     ; printOut [stepsToPrint], pformat_d
-    ; printOut [maxDist], pformat_f
-    ; printOut [maxDist], pformat_d            ; TODO: need to be format_f for floating point
+    ; printOut maxDist, pformat_d
+    ; mov ebx, maxDist
+    ; shl ebx, 15
+    ; printOut ebx, pformat_f
+    printOut [maxDist], pformat_f            ; TODO: need to be format_f for floating point
+    ; mov ecx, [maxDist]
+    ; printOut ecx, pformat_f
     ; printOut [seed], pformat_d
     ; printOut [tempSeed], pformat_d
 
