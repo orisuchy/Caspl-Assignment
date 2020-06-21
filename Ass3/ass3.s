@@ -108,7 +108,7 @@ section .bss
     tempESP:        resd 1
     mainESP:        resd 1
     currCor:        resd 1
-    scale:          resd 1
+    ;scale:          resd 1
 
 section .data
     ; ____ Global Vars ____
@@ -139,7 +139,7 @@ section .data
     seed13bit:      dd 0
     seed11bit:      dd 0
     randomNum:      dd 0.0
-    ;scale:          dd 0.0
+    scale:          dd 0.0
     ; schedulerCor:   dd runScheduler
     ;                 dd schedulerStack + stackSize
     ; printerCor:     dd runPrinter
@@ -184,7 +184,7 @@ main:
     scanNextTo seed, format_d
     mov     eax, [seed]
     mov     [tempSeed], eax
-    call runTarget
+    
     call calcLFSRrandom
     ; ;_____ for debug ____
     printOut random_print, format_s
@@ -197,8 +197,8 @@ main:
 
     ; ;_____ for debug ____
     printOut scaled_print, format_s
-    printOut [scale], pformat_f
-    
+    printOut [scale], pformat_d
+    call runTarget
     ; ; ___________ Print args for debug ___________
     ; printOut [numOfDrones], pformat_d
     ; printOut [numOfcycles], pformat_d

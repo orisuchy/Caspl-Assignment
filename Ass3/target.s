@@ -36,10 +36,11 @@
 section	.rodata
     scaleNum: dd 100
     ; locPrint:   db "X - %.2f y - %.2f ",0
-    xPrint:   db "X - ",0
-    yPrint:   db "Y - ",0
-    startx:   db "Start X from here-",0 ,10
-    starty:   db "Start Y from here-",0 ,10
+    titlePrint:     db 10, "Target location-", 0, 10
+    xPrint:         db "   X - ", 0
+    yPrint:         db "   Y - ", 0
+    ; startx:         db "Start X from here-",0 ,10
+    ; starty:         db "Start Y from here-",0 ,10
 section .data
 section .bss
     xLoc:   resd 1
@@ -63,13 +64,16 @@ runTarget:
     mov     ebp, esp
     pushad
     call    createTarget
-    ;____ Print for debug
+
+    ;____ Print for debug ____
+    printOut titlePrint, pformat_s
     printOut xPrint, format_s
     printOut [xLoc], pformat_d
     printOut yPrint, format_s
     printOut [yLoc], pformat_d
-
-    exit 0
+    mov     esp,ebp
+    pop     ebp
+    ret
 
 
 createTarget:
