@@ -38,14 +38,14 @@
 %endmacro
 
 %macro  printOut 2
-    ; pushad
-    ; pushfd
+    pushad
+    pushfd
     push    dword %1                         ; 3rd arg, string pointer
     push    dword %2                         ; 2nd arg, format string
     call    printf
     add     esp, 8
-    ; popfd
-    ; popad
+    popfd
+    popad
 %endmacro
 
 %macro initCoroutine 1
@@ -75,6 +75,10 @@ section	.rodata
     global format_d
     global format_s
     global format_f
+    global pformat_d
+    global pformat_s
+    global pformat_f
+    global random_print
     ; ____ Global Offsets ____
     global corFuncOff
     global corStackOff
@@ -102,6 +106,9 @@ section .bss
     schedulerStack: resb stackSize
     droneStack:     resb stackSize
     tempESP:        resd 1
+    mainESP:        resd 1
+    currCor:        resd 1
+    scale:          resd 1
 
 section .data
     ; ____ Global Vars ____
@@ -116,6 +123,9 @@ section .data
     global targetCor
     global droneCor
 
+    extern runTarget
+    global scale
+
 
     numOfDrones:    dd 0
     numOfcycles:    dd 0
@@ -123,12 +133,13 @@ section .data
     maxDist:        dd 0.0                   ; TODO: need to be dt for floating point
     seed:           dd 0
     tempSeed:       dd 0
+    seedChanger:    dd 1
     seed16bit:      dd 0
     seed14bit:      dd 0
     seed13bit:      dd 0
     seed11bit:      dd 0
     randomNum:      dd 0.0
-    scale:          dd 0.0
+    ;scale:          dd 0.0
     ; schedulerCor:   dd runScheduler
     ;                 dd schedulerStack + stackSize
     ; printerCor:     dd runPrinter
@@ -137,6 +148,11 @@ section .data
     ;                 dd targetStack + stackSize
     ; droneCor:       dd runDrone
     ;                 dd droneStack + stackSize
+    ; In scheduler???
+    ; Cors:           dd schedulerCor
+    ;                 dd printerCor
+    ;                 dd targetCor
+    ;                 dd droneCor
 section .text
     extern printf
     extern fprintf
@@ -158,7 +174,7 @@ main:
     cmp     eax, 6h                              ; verify num of args (5+1)
     jne     exitErr
     add     ebx, 4                               ; skip ./ass3
-                                             ; ___________ Args to Variables ___________
+    ; ___________ Args to Variables ___________
     scanNextTo numOfDrones, format_d
     scanNextTo numOfcycles, format_d
     scanNextTo stepsToPrint, format_d
@@ -168,21 +184,21 @@ main:
     scanNextTo seed, format_d
     mov     eax, [seed]
     mov     [tempSeed], eax
-
+    call runTarget
     call calcLFSRrandom
     ; ;_____ for debug ____
-    ; printOut random_print, format_s
-    ; printOut dword[randomNum], pformat_d
-
+    printOut random_print, format_s
+    printOut [randomNum], pformat_d
+    
     push randomNum
-    mov     dword eax,100
+    mov     dword eax,  100
     push    eax
     call scaleTo
 
     ; ;_____ for debug ____
-    ; printOut scaled_print, format_s
-    ; printOut [scale], pformat_d
-
+    printOut scaled_print, format_s
+    printOut [scale], pformat_f
+    
     ; ; ___________ Print args for debug ___________
     ; printOut [numOfDrones], pformat_d
     ; printOut [numOfcycles], pformat_d
@@ -210,7 +226,6 @@ calcLFSRrandom:
         randLoop:
         cmp     ecx, 16
         je randomReady
-
         ; ____ Get Bits From Seed ____
         ; getBit %2 = 16-bitNum (for SHR), %1 = 2^%2 (to get the bit with AND)
         getBit 1,0                           ; bit 16
@@ -246,7 +261,7 @@ calcLFSRrandom:
         mov     dword ebx, [randomNum]
         add     ebx, eax
 
-        ; ; Print Random Number Status for debug
+        ; Print Random Number Status for debug
         ; printOut random_print, format_s
         ; printOut [randomNum], pformat_d
 
@@ -269,13 +284,18 @@ calcLFSRrandom:
         mov     [tempSeed], edx
         inc     ecx
         jmp     randLoop
+        ; printOut [tempSeed], pformat_d
     randomReady:
         ; ___ Cancell Last Shift ___
         mov     ebx, 0
         mov     dword ebx, [randomNum]
         shr     ebx, 1
         mov     dword[randomNum], ebx
-        ; should we reset the tempSeed? Think not to get better random
+        ; use "seedChanger" to get better random
+        mov     eax, [seed]
+        add     eax, [seedChanger]
+        mov     [tempSeed], eax
+        inc     dword [seedChanger]
         mov     esp,ebp
         pop     ebp
         ret
@@ -286,19 +306,20 @@ scaleTo:
     mov     dword eax, [ebp+8]               ; scale measures
     mov     dword ebx, [ebp+12]              ; number to scale
     finit
-    fild    dword [ebx]                      ; push float
-    mov     dword [ebx], 0xfff               ; max int for 16bit
+    fld     dword [ebx]                      ; push float
+    mov     dword [ebx], 0xffff              ; max int for 16bit
     fidiv   dword [ebx]                      ; number/ffff
     mov     dword [ebx], eax
     fimul   dword [ebx]                      ; (number/ffff) * scale
-    fstp    dword [ebx]
+    fst     dword [scale]
     ; mov dword ecx, [ebp+8]
     ; mov dword eax, [ecx]
     mov     esp,ebp
     pop     ebp
     ret
 
-
+droneCors:
+    
 
     ; ===== Exits =====
 exitNormal:
