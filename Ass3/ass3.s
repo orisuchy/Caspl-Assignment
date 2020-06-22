@@ -48,6 +48,10 @@
     popad
 %endmacro
 
+%macro fprintOut 1
+
+%endmacro
+
 %macro initCoroutine 1
     mov     dword ebx, %1                    ; get Pointer to cor struct
     mov     dword eax, [ebx + corFuncOff]    ; get initial EIP value - pointer to CO function
@@ -108,7 +112,8 @@ section .bss
     tempESP:        resd 1
     mainESP:        resd 1
     currCor:        resd 1
-    ;scale:          resd 1
+    ; corDronesArr:   resd 2          ; because Netanel said so all the blame on him
+    ; scale:          resd 1
 
 section .data
     ; ____ Global Vars ____
@@ -124,6 +129,7 @@ section .data
     global droneCor
 
     extern runTarget
+    extern runPrinter
     global scale
 
 
@@ -142,17 +148,18 @@ section .data
     scale:          dq 0.0
     ; schedulerCor:   dd runScheduler
     ;                 dd schedulerStack + stackSize
-    ; printerCor:     dd runPrinter
-    ;                 dd printerStack + stackSize
-    ; targetCor:      dd runTarget
-    ;                 dd targetStack + stackSize
-    ; droneCor:       dd runDrone
-    ;                 dd droneStack + stackSize
-    ; In scheduler???
-    ; Cors:           dd schedulerCor
-    ;                 dd printerCor
-    ;                 dd targetCor
-    ;                 dd droneCor
+    printerCor:     dd runPrinter
+                    dd printerStack + stackSize
+    targetCor:      dd runTarget
+                    dd targetStack + stackSize
+    droneCor:       dd runDrone
+                    dd droneStack + stackSize
+    corDronesArr:   dd runDrone
+;    ; In scheduler???
+;     Cors:           dd schedulerCor
+;                     dd printerCor
+;                     dd targetCor
+;                     dd droneCor
 section .text
     extern printf
     extern fprintf
@@ -178,15 +185,44 @@ main:
     scanNextTo numOfDrones, format_d
     scanNextTo numOfcycles, format_d
     scanNextTo stepsToPrint, format_d
-    scanNextTo maxDist, format_f             ; TODO: need to be format_f for floating point
-    ; fld dword [maxDist]
-    ; fstp qword [maxDist]
+    scanNextTo maxDist, format_f 
     scanNextTo seed, format_d
     mov     eax, [seed]
     mov     [tempSeed], eax
     
+    ;____ Create Drones Array ____
+    mov     dword eax, 0
+    mov     dword eax, [numOfDrones]
+    mul     dword eax, 8
+    push    eax
+    call    malloc
+    add     esp, 4
+    mov     dword [corDronesArr], eax
+    
+    mov     ecx, 1
+    initDronesArrLoop:
+        cmp ecx, [numOfDrones]
+        je dronesReady
+        mov dword eax, [numOfDrones]
+        mov dword ebx, 8
+        mul ebx
+        mov dword ebx, [corDronesArr]
+        add ebx, eax
+        mov dword ecx, runDrone
+        mov dword [ebx], ecx
+        push dword , 4000h
+
+
+
+    dronesReady:
+
+
+
+
+
 
     call calcLFSRrandom
+
     ; ;_____ for debug ____
     printOut random_print, format_s
     printOut [randomNum], pformat_d
@@ -199,40 +235,30 @@ main:
     ; ; ;_____ for debug ____
     printOut scaled_print, format_s
     ;printOut [scale], pformat_f
-    ;sub esp, 8
-    fld dword [scale]
-    fstp qword [esp]
-    push pformat_f
-    call printf
-    add esp, 8
+
     call runTarget
+    call runPrinter
     ; ___________ Print args for debug ___________
     ; printOut [numOfDrones], pformat_d
     ; printOut [numOfcycles], pformat_d
     ; printOut [stepsToPrint], pformat_d
-    printOut [maxDist], pformat_f            ; TODO: need to be format_f for floating point
-    ;sub esp, 8
-    fld dword [maxDist]
-    fstp qword [esp]
-    push pformat_f
-    call printf
-    add esp, 8
+    ; printOut [maxDist], pformat_f            ; TODO: need to be format_f for floating point
+    ; sub esp, 8
+    ; fld dword [maxDist]
+    ; fstp qword [esp]
+    ; push pformat_f
+    ; call printf
+    ; add esp, 8
     ; printOut [seed], pformat_d
     ; printOut [tempSeed], pformat_d
 
-    ; printOut maxDist, pformat_d
-    ; mov ebx, maxDist
-    ; shl ebx, 15
-    ; printOut ebx, pformat_f
-    ; mov ecx, [maxDist]
-    ; printOut ecx, pformat_f
 
 
 
     ; initCoroutine schedulerCor
-    ; initCoroutine printerCor
-    ; initCoroutine targetCor
-    ; initCoroutine droneCor
+    initCoroutine printerCor
+    initCoroutine targetCor
+    initCoroutine droneCor
     jmp exitNormal
 
     ; ===== Function To Calculate Random Number =====

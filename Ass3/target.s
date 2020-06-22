@@ -43,8 +43,11 @@ section	.rodata
     ; starty:         db "Start Y from here-",0 ,10
 section .data
 section .bss
-    xLoc:   resd 1
-    yLoc:   resd 1
+    global xLoc
+    global yLoc
+
+    xLocT:   resq 1
+    yLocT:   resq 1
 section .text
     extern format_d
     extern format_s
@@ -65,12 +68,12 @@ runTarget:
     pushad
     call    createTarget
 
-    ;____ Print for debug ____
-    printOut titlePrint, pformat_s
-    printOut xPrint, format_s
-    printOut [xLoc], pformat_d
-    printOut yPrint, format_s
-    printOut [yLoc], pformat_d
+    ; ;____ Print for debug ____
+    ; printOut titlePrint, pformat_s
+    ; printOut xPrint, format_s
+    ; printOut [xLocT], pformat_d
+    ; printOut yPrint, format_s
+    ; printOut [yLocT], pformat_d
     mov     esp,ebp
     pop     ebp
     ret
@@ -82,11 +85,12 @@ createTarget:
     ; ____ Get Random X ___
     mov     [scale], dword 0
     call    calcLFSRrandom
+    ; fild dword[randomNum]
     push    randomNum
     push    dword[scaleNum]
     call    scaleTo
     mov     eax, [scale]
-    mov     [xLoc], eax
+    mov     [xLocT], eax
     
     ; ____ Get Random Y ___
     mov     [scale], dword 0
@@ -95,7 +99,7 @@ createTarget:
     push    dword[scaleNum]
     call    scaleTo
     mov     eax, [scale]
-    mov     [yLoc], eax
+    mov     [yLocT], eax
     mov     esp,ebp
     pop     ebp
     ret

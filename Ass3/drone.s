@@ -17,3 +17,66 @@
 ;         (*) then change the new current speed to be speed + ∆a, keeping the speed between [0, 100] by cutoff if needed
 ;     (*) resume scheduler co-routine by calling resume(scheduler)	
 ; (*) end do
+
+section	.rodata
+    angleScaleNum: dd 120
+    speedScaleNum: dd 20
+
+section .data
+    angle: dd 0
+    speed: dd 0
+
+section .bss
+    xLocD:   resq 1
+    yLocD:   resq 1
+section .text
+    extern format_d
+    extern format_s
+    extern format_f
+    extern pformat_d
+    extern pformat_s
+    extern pformat_f
+    extern random_print
+    extern calcLFSRrandom
+    extern scaleTo
+    extern randomNum
+    extern printf
+    extern scale
+global runDrone
+
+    runDrone:
+        push    ebp
+        mov     ebp, esp
+        pushad
+
+    ; Need to check all the Torus thing in the instructions
+    calculateAngle:
+        mov     [scale], dword 0
+        call    calcLFSRrandom
+        ; fild dword[randomNum]
+        push    randomNum
+        push    dword[angleScaleNum]
+        call    scaleTo
+        mov     eax, [scale]
+        sub     eax, 60            ;[-60,60]
+        mov     [angle], eax
+
+    calculateSpeed:
+        mov     [scale], dword 0
+        call    calcLFSRrandom
+        ; fild dword[randomNum]
+        push    randomNum
+        push    dword[speedScaleNum]
+        call    scaleTo             ;[-10,10]
+        mov     eax, [scale]
+        sub     eax, 10
+        mov     [speed], eax
+
+    ; What about the initial loc????
+    calculateNextLoc:
+        nextXLoc:
+            ; cos(alpha)*speed
+        nextYLoc:
+            ; sin(alpha)*speed
+
+
